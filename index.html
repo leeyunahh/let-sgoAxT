@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ant의 아텍 입성기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&family=Nanum+Myeongjo:wght@400;700;800&family=Nanum+Pen+Script&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+/* =====================================================================
+   GAME 데이터 — 문구는 전부 여기서 고치면 됩니다.
+   - questions[].choices[].tags : 이 선택지가 +1점을 주는 글자
+   - label  : 선택 화면에 보이는 선택지 문구
+   - log    : 신청서 '활동 내역'에 들어가는 한 줄
+   - phrase : 결과 화면 요약 문장에 끼워 넣는 명사구
+   - role   : 요약 문장에서 이 질문이 들어갈 자리 (activity / experience / work)
+   - 조사 표기 (을/를) (이/가) (은/는) (와/과) (으로/로) 는 앞 글자 받침에 맞게 자동 변환됩니다.
+   ===================================================================== */
+/* GAME_DATA_START */
+const GAME = {
+  title: "Ant의 아텍 입성기",
+  subtitle: "지식융합미디어 새내기 Ant의 1년.\n다섯 번의 선택으로 어떤 창조자가 될까?",
+  startButton: "입학하기",
+  player: { name: "Ant", major: "지식융합미디어학부 1학년" },
+
+  // 성향 축: left/right 중 점수가 많은 쪽, 동점이면 그 축에 점수를 준 마지막 선택, 0:0이면 default
+  axes: [
+    { key: "weapon",    title: "표현의 무기",   left: "A", right: "T", default: "A",
+      labels: { A: "예술적 감수성", T: "첨단 기술" } },
+    { key: "stage",     title: "창조의 단계",   left: "I", right: "M", default: "M",
+      labels: { I: "구상", M: "실행" } },
+    { key: "direction", title: "상상력의 방향", left: "P", right: "W", default: "P",
+      labels: { P: "사람", W: "세상" } }
+  ],
+
+  questions: [
+    {
+      period: "3월", role: "activity",
+      question: "거리제에서 다양한 동아리를 구경하고 있어! 어떤 동아리에 들어갈까?",
+      choices: [
+        { icon: "🥁", label: "소요 (풍물패)", tags: ["A", "W"],
+          log: "풍물패 '소요'에서 장구를 맡아 거리제·교내 길놀이 공연 참여",
+          phrase: "풍물패 소요의 합주" },
+        { icon: "🎭", label: "서강연극회", tags: ["A", "P"],
+          log: "서강연극회 신입 단원으로 정기공연 배역 연구 및 무대 참여",
+          phrase: "서강연극회의 연기" },
+        { icon: "🎨", label: "강미반 (미술)", tags: ["A", "M"],
+          log: "미술 동아리 강미반에서 정기 크로키·회화 작업 참여",
+          phrase: "강미반의 그림 작업" },
+        { icon: "💻", label: "SGCC (컴퓨터 및 프로그래밍)", tags: ["T", "M"],
+          log: "프로그래밍 동아리 SGCC에서 기초 코딩 스터디 참여",
+          phrase: "SGCC의 코딩 스터디" }
+      ]
+    },
+    {
+      period: "4월", role: "experience",
+      question: "두근두근 첫 조별과제! 우리 조에서 Ant의 역할은?",
+      choices: [
+        { icon: "🖼️", label: "PPT 디자인", tags: ["A", "M"],
+          log: "첫 조별과제에서 발표 자료 시각 디자인 담당",
+          phrase: "조별과제 발표 디자인" },
+        { icon: "💡", label: "아이디어 기획", tags: ["I", "W"],
+          log: "첫 조별과제에서 주제 발굴 및 아이디어 기획 담당",
+          phrase: "조별과제 아이디어 회의" },
+        { icon: "📣", label: "진두지휘하는 조장", tags: ["M", "W"],
+          log: "첫 조별과제 조장으로서 일정 관리 및 팀 운영 총괄",
+          phrase: "조장으로 이끈 조별과제" },
+        { icon: "🔍", label: "다른 작품들을 보며 자료조사", tags: ["I", "P"],
+          log: "첫 조별과제에서 레퍼런스 작품 분석 및 자료조사 담당",
+          phrase: "다른 작품들을 살펴본 자료조사" }
+      ]
+    },
+    {
+      period: "5월", role: "activity",
+      question: "캠퍼스가 들썩이는 축제 기간! 무엇을 할까?",
+      choices: [
+        { icon: "🎤", label: "축제 공연 무대에 서기", tags: ["M", "W"],
+          log: "대동제 축제 공연 무대 출연",
+          phrase: "축제 무대 공연" },
+        { icon: "🖌️", label: "미술 작품 전시하기", tags: ["A", "M"],
+          log: "축제 기간 교내 미술 작품 전시 참여",
+          phrase: "축제 작품 전시" },
+        { icon: "📚", label: "개인적인 공부에 집중", tags: ["T", "I"],
+          log: "축제 기간 관심 기술 분야 독학 및 학습 노트 정리",
+          phrase: "꾸준한 기술 독학" },
+        { icon: "🎪", label: "다른 부스 구경하며 시간 보내기", tags: ["I", "P"],
+          log: "축제 부스 탐방하며 참여형 콘텐츠 사례 관찰",
+          phrase: "축제 부스 탐방" }
+      ]
+    },
+    {
+      period: "여름방학", role: "experience",
+      question: "드디어 여름방학! 이번 방학은 어떻게 보낼까?",
+      choices: [
+        { icon: "🎓", label: "아텍에서 진행한 특강 듣기", tags: ["T", "I"],
+          log: "여름방학 아트앤테크놀로지 전공 특강 수강",
+          phrase: "아텍 특강" },
+        { icon: "🏛️", label: "다양한 전시회 관람하러 가기", tags: ["A", "I"],
+          log: "여름방학 미디어아트·현대미술 전시 관람 및 감상 기록",
+          phrase: "여러 전시회 관람" },
+        { icon: "⚡", label: "해커톤 나가서 밤새 무언가 만들어보기", tags: ["T", "M"],
+          log: "여름방학 해커톤 참가, 팀 프로젝트 프로토타입 제작",
+          phrase: "밤샘 해커톤" },
+        { icon: "🤝", label: "봉사활동하며 사회 문제 들여다보기", tags: ["I", "W"],
+          log: "여름방학 봉사활동을 통한 지역사회 문제 탐구",
+          phrase: "봉사활동" }
+      ]
+    },
+    {
+      period: "2학기", role: "work",
+      question: "첫 개인 작업물을 만들 시간! 무엇을 만들어 볼까?",
+      choices: [
+        { icon: "🛠️", label: "다양한 툴을 배우며 예술작품 만들어보기", tags: ["A", "P"],
+          log: "2학기 개인 작업: 다양한 디지털 툴을 익혀 예술 작품 제작",
+          phrase: "다양한 툴로 완성한 예술 작품" },
+        { icon: "🎮", label: "파이게임으로 게임 만들어보기", tags: ["T", "M"],
+          log: "2학기 개인 작업: Pygame 기반 게임 제작",
+          phrase: "파이게임으로 만든 게임" },
+        { icon: "🎬", label: "AI를 활용해 많은 사람과 나누고 싶은 이야기를 영상으로 만들기", tags: ["A", "W"],
+          log: "2학기 개인 작업: 생성형 AI를 활용한 스토리 영상 제작",
+          phrase: "AI로 만든 이야기 영상" },
+        { icon: "🌐", label: "친구들 이야기를 담은 인터랙티브 웹페이지 만들기", tags: ["T", "P"],
+          log: "2학기 개인 작업: 친구들의 이야기를 담은 인터랙티브 웹페이지 제작",
+          phrase: "친구들의 이야기를 담은 인터랙티브 웹페이지" }
+      ]
+    }
+  ],
+
+  // 결과 화면 요약 문장 ({activity1}=첫 activity 질문의 phrase ...)
+  summaryTemplate: "Ant는 {activity1}(와/과) {activity2}(으로/로) {competency}(을/를) 키웠고, {experience1}(와/과) {experience2}에서 새로운 것을 구상했으며, {work}(으로/로) 이를 실행해 {impact}에 영향을 주었다.",
+  competencyByWeapon: { A: "예술적 감수성", T: "첨단 기술 활용 능력" },
+  impactByDirection:  { P: "곁에 있는 사람들의 마음", W: "더 넓은 세상" },
+
+  vision: {
+    title: "아텍이 찾는 21세기 창조자",
+    text: "가치 있지만 아직 알려지지 않은 무언가를 구상하고, 직접 실행에 옮겨 세상에 영향을 미치는 사람.",
+    competencies: ["인본주의적 상상력", "예술적 감수성", "첨단 기술 활용 능력"]
+  },
+
+  types: {
+    AIP: { name: "감정을 설계하는 몽상가", color: "#ff8fa3",
+      desc: "아직 이름 붙지 않은 감정을 가장 먼저 알아차리는 창조자예요. 섬세한 감수성으로 한 사람의 마음속 풍경을 구상하고, 기술은 그 풍경을 정확히 옮기는 붓으로 씁니다. 머릿속 설계도가 완성되는 순간, 작품은 이미 누군가의 마음에 닿을 준비를 마쳐요.",
+      fit: "사람의 내면을 향한 인본주의적 상상력을 출발점으로, 예술적 감수성으로 감정을 형상화하고 첨단 기술을 표현의 도구로 다룹니다." },
+    AIW: { name: "시대를 읽는 기획자", color: "#ffc531",
+      desc: "세상의 흐름 속에서 아직 아무도 던지지 않은 질문을 찾아내는 창조자예요. 예술적 시선으로 사회의 결을 읽고, 기술과 사람을 엮어 공동체가 함께 볼 큰 그림을 그립니다. 그가 쓴 기획서 한 장이 많은 사람을 움직이는 출발점이 돼요.",
+      fit: "공동체를 향한 인본주의적 상상력으로 시대의 질문을 구상하고, 예술적 감수성으로 메시지를 다듬으며, 첨단 기술로 그것을 실현할 길을 설계합니다." },
+    AMP: { name: "마음을 건드리는 아티스트", color: "#ef4b36",
+      desc: "손끝에서 감정이 곧바로 형태가 되는 창조자예요. 떠오른 상상을 망설임 없이 작품으로 완성하고, 필요한 기술은 만들면서 내 것으로 익힙니다. 완성된 작품 앞에서 한 사람이 오래 멈춰 서는 것, 그것이 Ant가 세상에 닿는 방식이에요.",
+      fit: "한 사람의 경험을 깊이 상상하는 인본주의적 상상력과 예술적 감수성을, 첨단 도구를 다루는 손으로 직접 작품에 옮겨 냅니다." },
+    AMW: { name: "AI로 이야기를 펼치는 크리에이터", color: "#a77bff",
+      desc: "많은 사람과 나누고 싶은 이야기를 직접 만들어 세상에 내놓는 창조자예요. AI 같은 새로운 도구를 예술적 감각으로 다루며, 구상한 이야기를 영상·공연·작품으로 빠르게 실현합니다. 그의 이야기는 공동체가 함께 공감하는 장면이 돼요.",
+      fit: "세상과 나누고 싶은 이야기를 품은 인본주의적 상상력, 그것을 매력적으로 빚는 예술적 감수성, AI를 자유롭게 다루는 첨단 기술 활용 능력을 실행으로 증명합니다." },
+    TIP: { name: "경험을 발명하는 디자이너", color: "#4fd1b0",
+      desc: "기술로 '어떤 느낌'을 설계하는 창조자예요. 한 사람이 무엇을 보고, 누르고, 느끼게 될지를 먼저 상상하고 그 경험을 가능하게 할 구조를 고안합니다. 감수성과 기술이 만나는 지점에서 새로운 경험을 발명해요.",
+      fit: "사용자 한 사람을 향한 인본주의적 상상력으로 경험을 구상하고, 예술적 감수성으로 그 결을 다듬으며, 첨단 기술로 구조를 설계합니다." },
+    TIW: { name: "미래를 그리는 설계자", color: "#4aa8ff",
+      desc: "기술이 바꿀 내일을 누구보다 먼저 그려보는 창조자예요. 사회와 공동체의 문제를 넓게 바라보고, 첨단 기술로 풀어낼 시스템을 구상합니다. 사람에 대한 상상력이 담긴 그의 설계도는 더 나은 미래의 밑그림이 돼요.",
+      fit: "공동체의 내일을 그리는 인본주의적 상상력 위에 첨단 기술 활용 능력을 더하고, 예술적 감수성으로 그 미래를 사람들이 공감할 모습으로 구상합니다." },
+    TMP: { name: "마음을 코딩하는 메이커", color: "#ff9f45",
+      desc: "코드 한 줄에 사람의 마음을 담는 창조자예요. 친구의 이야기와 나의 감정을 직접 작동하는 웹·게임·인터랙션으로 만들어 냅니다. 일단 만들어 보는 손과 사람을 향한 따뜻한 시선이 늘 함께 움직여요.",
+      fit: "곁에 있는 사람을 향한 인본주의적 상상력을 첨단 기술로 직접 구현하고, 예술적 감수성으로 그 결과물에 온기를 불어넣습니다." },
+    TMW: { name: "세상을 바꾸는 엔지니어", color: "#3ccf6e",
+      desc: "아이디어를 실제로 작동하는 무언가로 만들어 세상에 내놓는 창조자예요. 밤새 만들고 고치는 실행력으로 기술을 공동체의 문제 앞에 세웁니다. 그가 만든 것은 많은 사람의 일상을 실제로 바꿔요.",
+      fit: "더 많은 사람을 향한 인본주의적 상상력을 첨단 기술로 끝까지 실행하고, 예술적 감수성으로 사람들이 기꺼이 쓰고 싶은 형태를 만듭니다." }
+  },
+
+  application: {
+    org: "서강대학교 아트앤테크놀로지 전공",
+    docNo: "문서번호 ATK-1학년-001",
+    title: "전공 진입 신청서",
+    labels: { name: "성 명", major: "소 속", type: "창조자 유형", log: "활동 내역", period: "시기", content: "내용", reason: "신청 사유" },
+    pledge: "위 학생은 1학년 동안의 활동을 바탕으로 아트앤테크놀로지 전공 진입을 신청합니다.",
+    date: "20XX년 12월",
+    signLabel: "신청인",
+    recipient: "서강대학교 아트앤테크놀로지 전공 귀중",
+    submitButton: "제출하기",
+    stampText: "승인",
+    stampSub: "ART & TECHNOLOGY",
+    approvedMessage: "축하해요! Ant는 이제 아텍 학생이에요 🎉"
+  },
+
+  buttons: { toApplication: "신청서 작성하기", save: "이미지로 저장", restart: "다시 하기" }
+};
+/* GAME_DATA_END */
+
+/* LOGIC_START */
+// 고른 선택지 배열 → 유형 코드("AIP" 등)와 축별 점수
+function computeType(picks) {
+  const scores = {};
+  const code = GAME.axes.map(ax => {
+    let l = 0, r = 0, last = null;
+    picks.forEach(c => c.tags.forEach(t => {
+      if (t === ax.left)  { l++; last = t; }
+      if (t === ax.right) { r++; last = t; }
+    }));
+    scores[ax.left] = l; scores[ax.right] = r;
+    if (l > r) return ax.left;
+    if (r > l) return ax.right;
+    return last || ax.default;
+  }).join("");
+  return { code, scores };
+}
+/* LOGIC_END */
+</script>
+
+<style>
+  :root {
+    --ink: #2a1a12;
+    --cream: #fff4dc;
+    --cream-2: #ffe9b8;
+    --tomato: #ef4b36;
+    --tomato-d: #c8341f;
+    --mustard: #ffc531;
+    --mint: #4fd1b0;
+    --sky: #6cc4ff;
+    --white: #fffdf7;
+    --line: 4px;
+    --radius: 22px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; }
+  body {
+    background-color: var(--cream);
+    background-image: radial-gradient(rgba(42,26,18,.09) 2px, transparent 2.5px);
+    background-size: 26px 26px;
+    color: var(--ink);
+    font-family: "Jua", system-ui, sans-serif;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+  #app {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 20px 16px 48px;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  #app.shake { animation: shake .45s ease-out; }
+  @keyframes shake {
+    0%,100% { transform: translate(0,0); }
+    15% { transform: translate(-7px, 4px); }
+    30% { transform: translate(6px, -4px); }
+    45% { transform: translate(-5px, 2px); }
+    60% { transform: translate(4px, -2px); }
+    80% { transform: translate(-2px, 1px); }
+  }
+
+  /* ---------- 화면 전환 ---------- */
+  .screen { display: none; }
+  .screen.active { display: block; animation: popIn .4s cubic-bezier(.2,1.4,.4,1); }
+  @keyframes popIn { from { opacity: 0; transform: translateY(18px) scale(.98); } to { opacity: 1; transform: none; } }
+
+  /* ---------- 공통 요소 ---------- */
+  .btn {
+    font-family: "Jua", sans-serif;
+    font-size: 22px;
+    color: var(--white);
+    background: var(--tomato);
+    border: var(--line) solid var(--ink);
+    border-radius: 999px;
+    padding: 14px 36px 12px;
+    box-shadow: 0 7px 0 var(--ink);
+    cursor: pointer;
+    transition: transform .08s, box-shadow .08s, filter .15s;
+    text-shadow: 0 2px 0 rgba(0,0,0,.18);
+    touch-action: manipulation;
+  }
+  .btn:hover { filter: brightness(1.06); }
+  .btn:active { transform: translateY(7px); box-shadow: 0 0 0 var(--ink); }
+  .btn.yellow { background: var(--mustard); color: var(--ink); text-shadow: none; }
+  .btn.mint { background: var(--mint); color: var(--ink); text-shadow: none; }
+  .btn.white { background: var(--white); color: var(--ink); text-shadow: none; }
+  .btn-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 28px; }
+
+  .panel {
+    background: var(--white);
+    border: var(--line) solid var(--ink);
+    border-radius: var(--radius);
+    box-shadow: 0 7px 0 var(--ink);
+    padding: 20px;
+  }
+  .chip {
+    display: inline-block;
+    font-size: 17px;
+    background: var(--mustard);
+    border: 3px solid var(--ink);
+    border-radius: 999px;
+    padding: 4px 14px 2px;
+    box-shadow: 0 3px 0 var(--ink);
+  }
+
+  /* ---------- Ant 캐릭터 ---------- */
+  .ant { display: block; width: 100%; height: auto; overflow: visible; }
+  .ant .bob { animation: bob 1.6s ease-in-out infinite; transform-box: view-box; transform-origin: 100px 220px; }
+  .ant .antenna-l { animation: wiggleL 2.2s ease-in-out infinite; transform-box: view-box; transform-origin: 84px 48px; }
+  .ant .antenna-r { animation: wiggleR 2.2s ease-in-out infinite; transform-box: view-box; transform-origin: 116px 48px; }
+  .ant .arm-r { animation: wave 1.1s ease-in-out infinite; transform-box: view-box; transform-origin: 120px 140px; }
+  .ant .eyes { animation: blink 4s infinite; transform-box: view-box; transform-origin: 100px 92px; }
+  @keyframes bob { 0%,100% { transform: translateY(0) scaleY(1); } 50% { transform: translateY(-5px) scaleY(1.02); } }
+  @keyframes wiggleL { 0%,100% { transform: rotate(0); } 50% { transform: rotate(-9deg); } }
+  @keyframes wiggleR { 0%,100% { transform: rotate(0); } 50% { transform: rotate(9deg); } }
+  @keyframes wave { 0%,100% { transform: rotate(0); } 50% { transform: rotate(-22deg); } }
+  @keyframes blink { 0%,94%,100% { transform: scaleY(1); } 97% { transform: scaleY(.1); } }
+  .ant.cheer .arm-l { animation: waveL 0.7s ease-in-out infinite; transform-box: view-box; transform-origin: 80px 140px; }
+  .ant.cheer .bob { animation: hop .7s ease-in-out infinite; }
+  @keyframes waveL { 0%,100% { transform: rotate(0); } 50% { transform: rotate(22deg); } }
+  @keyframes hop { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+
+  /* ---------- 시작 화면 ---------- */
+  #start { text-align: center; padding-top: 4vh; }
+  .title {
+    font-family: "Black Han Sans", "Jua", sans-serif;
+    font-size: clamp(42px, 11vw, 76px);
+    line-height: 1.1;
+    color: var(--mustard);
+    margin: 10px 0 0;
+    letter-spacing: 1px;
+    text-shadow:
+      3px 0 0 var(--ink), -3px 0 0 var(--ink), 0 3px 0 var(--ink), 0 -3px 0 var(--ink),
+      2.5px 2.5px 0 var(--ink), -2.5px 2.5px 0 var(--ink), 2.5px -2.5px 0 var(--ink), -2.5px -2.5px 0 var(--ink),
+      0 9px 0 var(--ink);
+  }
+  .title .accent { color: var(--tomato); }
+  .subtitle { font-size: clamp(17px, 4.4vw, 21px); line-height: 1.55; white-space: pre-line; margin: 18px auto 0; max-width: 30em; }
+  .hero { position: relative; width: min(64vw, 270px); margin: 22px auto 0; }
+  .hero::before {
+    content: ""; position: absolute; inset: 8% -6% 0; z-index: -1;
+    background: var(--mint); border: var(--line) solid var(--ink); border-radius: 50%;
+  }
+  .nametag {
+    display: inline-block; margin-top: -8px; position: relative;
+    background: var(--tomato); color: var(--white); font-size: 20px;
+    border: 3px solid var(--ink); border-radius: 12px; padding: 4px 16px 2px;
+    box-shadow: 0 4px 0 var(--ink); transform: rotate(-3deg);
+  }
+  .confetti { position: fixed; inset: 0; pointer-events: none; z-index: -1; overflow: hidden; }
+  .confetti span {
+    position: absolute; width: 22px; height: 22px; border: 3px solid var(--ink); border-radius: 50%;
+    animation: float 6s ease-in-out infinite;
+  }
+  @keyframes float { 0%,100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-18px) rotate(20deg); } }
+
+  /* ---------- 선택 화면 ---------- */
+  .progress { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+  .progress .segs { flex: 1; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .progress .seg {
+    height: 18px; background: var(--white); border: 3px solid var(--ink); border-radius: 999px;
+    transition: background .3s;
+  }
+  .progress .seg.done { background: var(--tomato); }
+  .progress .seg.now { background: var(--mustard); }
+  .progress .count { font-size: 20px; min-width: 3.2em; text-align: right; }
+
+  .scene { display: flex; align-items: flex-end; gap: 10px; margin: 8px 0 22px; }
+  .scene .ant-wrap { flex: 0 0 auto; width: clamp(86px, 24vw, 130px); }
+  .bubble {
+    position: relative; flex: 1;
+    background: var(--white); border: var(--line) solid var(--ink); border-radius: 24px;
+    padding: 16px 18px 14px; box-shadow: 0 6px 0 var(--ink);
+    font-size: clamp(19px, 4.8vw, 24px); line-height: 1.45; margin-bottom: 30px;
+  }
+  .bubble::before, .bubble::after { content: ""; position: absolute; top: auto; bottom: 18px; width: 0; height: 0; border-style: solid; }
+  .bubble::before { left: -20px; border-width: 11px 20px 11px 0; border-color: transparent var(--ink) transparent transparent; }
+  .bubble::after  { left: -13px; bottom: 21px; border-width: 8px 15px 8px 0; border-color: transparent var(--white) transparent transparent; }
+  .bubble .chip { margin-bottom: 10px; }
+  .bubble p { margin: 0; }
+
+  .choices { display: grid; grid-template-columns: 1fr; gap: 16px; }
+  @media (min-width: 620px) { .choices { grid-template-columns: 1fr 1fr; } }
+  .card {
+    display: flex; align-items: center; gap: 14px; text-align: left; width: 100%;
+    font-family: "Jua", sans-serif; font-size: 19px; line-height: 1.35; color: var(--ink);
+    background: var(--white); border: var(--line) solid var(--ink); border-radius: var(--radius);
+    padding: 14px 16px; box-shadow: 0 6px 0 var(--ink); cursor: pointer;
+    transition: transform .1s, box-shadow .1s, opacity .25s, background .2s;
+    touch-action: manipulation;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 8px 0 var(--ink); }
+  .card:active { transform: translateY(5px); box-shadow: 0 1px 0 var(--ink); }
+  .card .icon {
+    flex: 0 0 auto; width: 54px; height: 54px; display: grid; place-items: center;
+    font-size: 28px; border: 3px solid var(--ink); border-radius: 16px;
+  }
+  .card:nth-child(1) .icon { background: var(--mustard); }
+  .card:nth-child(2) .icon { background: var(--mint); }
+  .card:nth-child(3) .icon { background: #ff8fa3; }
+  .card:nth-child(4) .icon { background: var(--sky); }
+  .card.picked { background: var(--mustard); animation: boing .45s cubic-bezier(.3,1.6,.5,1); }
+  .card.dim { opacity: .35; transform: scale(.97); }
+  @keyframes boing {
+    0% { transform: scale(1); }
+    35% { transform: translateY(-14px) scale(1.06) rotate(-1.5deg); }
+    65% { transform: translateY(2px) scale(.97); }
+    100% { transform: translateY(-4px) scale(1.01); }
+  }
+  .choices.locked .card { pointer-events: none; }
+
+  /* ---------- 결과 화면 ---------- */
+  .result-head { text-align: center; }
+  .result-head .ant-wrap { width: clamp(120px, 32vw, 170px); margin: 0 auto; }
+  .type-card { text-align: center; margin-top: 4px; position: relative; overflow: hidden; }
+  .type-card::before {
+    content: ""; position: absolute; left: 0; right: 0; top: 0; height: 14px;
+    background: var(--type-color, var(--mustard)); border-bottom: 3px solid var(--ink);
+  }
+  .type-code { display: inline-flex; gap: 8px; margin: 12px 0 8px; }
+  .type-code b {
+    font-family: "Black Han Sans", sans-serif; font-weight: 400; font-size: 26px;
+    width: 46px; height: 46px; display: grid; place-items: center;
+    background: var(--type-color, var(--mustard)); border: 3px solid var(--ink); border-radius: 12px;
+    box-shadow: 0 4px 0 var(--ink);
+  }
+  .type-name {
+    font-family: "Black Han Sans", sans-serif; font-size: clamp(28px, 7.4vw, 40px); margin: 6px 0 12px;
+    line-height: 1.2; word-break: keep-all;
+  }
+  .type-desc { font-size: 18px; line-height: 1.65; margin: 0; word-break: keep-all; }
+  .section-title { font-family: "Black Han Sans", sans-serif; font-size: 23px; margin: 30px 0 12px; display: flex; align-items: center; gap: 8px; }
+  .section-title::before { content: ""; width: 14px; height: 14px; background: var(--tomato); border: 3px solid var(--ink); border-radius: 50%; }
+
+  .timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .timeline li { display: flex; align-items: center; gap: 12px; font-size: 18px; line-height: 1.35; }
+  .timeline .when {
+    flex: 0 0 auto; min-width: 80px; text-align: center; font-size: 15px;
+    background: var(--mint); border: 3px solid var(--ink); border-radius: 999px; padding: 3px 8px 1px;
+  }
+  .timeline .what { word-break: keep-all; }
+
+  .meters { display: grid; gap: 14px; }
+  .meter-title { font-size: 15px; opacity: .75; margin-bottom: 4px; }
+  .meter { display: flex; align-items: center; gap: 8px; font-size: 16px; }
+  .meter .side { flex: 0 0 auto; width: 6.6em; }
+  .meter .side.r { text-align: right; }
+  .meter .side.win { color: var(--tomato-d); }
+  .meter .bar { flex: 1; height: 20px; border: 3px solid var(--ink); border-radius: 999px; overflow: hidden; display: flex; background: var(--white); }
+  .meter .bar i { display: block; height: 100%; }
+  .meter .bar i.l { background: var(--mustard); border-right: 3px solid var(--ink); }
+  .meter .bar i.r { background: var(--mint); flex: 1; }
+
+  .vision { background: var(--cream-2); }
+  .vision .quote { font-size: 16px; opacity: .8; margin: 0 0 14px; line-height: 1.5; }
+  .summary { font-size: 19px; line-height: 1.7; margin: 0 0 14px; word-break: keep-all; }
+  .summary mark { background: linear-gradient(transparent 55%, rgba(255,197,49,.85) 55%); color: inherit; padding: 0 2px; }
+  .comp-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+  .comp-row span { font-size: 15px; background: var(--white); border: 3px solid var(--ink); border-radius: 999px; padding: 4px 12px 2px; }
+  .comp-row span::before { content: "✔ "; color: var(--tomato); }
+  .fit { font-size: 17px; line-height: 1.6; margin: 0; word-break: keep-all; }
+
+  /* ---------- 신청서 화면 (공문서 톤) ---------- */
+  #application .lead { text-align: center; font-size: 20px; margin: 0 0 16px; }
+  .paper-wrap { position: relative; max-width: 640px; margin: 0 auto; }
+  .paper {
+    position: relative;
+    background-color: #f7f1e1;
+    background-image:
+      linear-gradient(rgba(120, 90, 40, .05) 1px, transparent 1px),
+      radial-gradient(circle at 15% 10%, rgba(255,255,255,.7), transparent 40%),
+      radial-gradient(circle at 85% 90%, rgba(170,130,60,.12), transparent 45%);
+    background-size: 100% 7px, 100% 100%, 100% 100%;
+    color: #222;
+    font-family: "Nanum Myeongjo", "Batang", serif;
+    padding: 34px 30px 36px;
+    border: 1px solid #c9bc9b;
+    box-shadow: 0 2px 0 #e6dcc3, 0 12px 28px rgba(60, 40, 10, .25);
+  }
+  .paper .doc-top { display: flex; justify-content: space-between; font-size: 12px; color: #555; border-bottom: 1px solid #555; padding-bottom: 6px; }
+  .paper h2 { text-align: center; font-weight: 800; font-size: clamp(22px, 5.8vw, 30px); letter-spacing: .25em; margin: 22px 0 6px; }
+  .paper .org { text-align: center; font-size: 14px; margin: 0 0 22px; letter-spacing: .05em; }
+  .form { width: 100%; border-collapse: collapse; font-size: 14.5px; table-layout: fixed; }
+  .form th, .form td { border: 1.5px solid #333; padding: 9px 10px; vertical-align: middle; line-height: 1.5; word-break: keep-all; }
+  .form th { background: rgba(110, 90, 50, .1); font-weight: 700; width: 22%; text-align: center; }
+  .form td.name { font-family: "Nanum Pen Script", cursive; font-size: 26px; line-height: 1; }
+  .form .period { width: 22%; text-align: center; white-space: nowrap; }
+  .form .sub th { font-size: 13px; padding: 5px; background: rgba(110, 90, 50, .06); }
+  .form td.type-cell { font-weight: 700; }
+  .form td.type-cell small { font-weight: 400; color: #555; display: block; font-size: 12.5px; margin-top: 2px; }
+  .paper .pledge { text-align: center; margin: 26px 0 8px; font-size: 15px; line-height: 1.7; word-break: keep-all; }
+  .paper .date { text-align: center; margin: 0 0 22px; font-size: 15px; letter-spacing: .1em; }
+  .paper .sign { position: relative; text-align: right; font-size: 15px; padding-right: 4px; }
+  .paper .sign .sig { font-family: "Nanum Pen Script", cursive; font-size: 32px; margin: 0 10px; vertical-align: -4px; color: #1d3c8f; }
+  .paper .recipient { text-align: center; font-weight: 800; font-size: clamp(15px, 4vw, 19px); margin: 30px 0 0; letter-spacing: .08em; }
+
+  .stamp {
+    position: absolute; right: 6%; bottom: 74px; z-index: 5;
+    width: 132px; height: 132px; border-radius: 50%;
+    border: 6px solid #d6281f; color: #d6281f;
+    display: none; place-items: center; text-align: center;
+    box-shadow: inset 0 0 0 4px #f7f1e1, inset 0 0 0 7px #d6281f;
+    font-family: "Black Han Sans", sans-serif; opacity: .9;
+    transform: rotate(-14deg);
+    pointer-events: none;
+  }
+  .stamp .big { font-size: 46px; line-height: 1; letter-spacing: 4px; display: block; }
+  .stamp .small { font-family: "Jua", sans-serif; font-size: 11px; letter-spacing: 1px; display: block; margin-top: 4px; }
+  .stamp.slam { display: grid; animation: slam .55s cubic-bezier(.5,0,.3,1) forwards; }
+  .stamp.done { display: grid; }
+  @keyframes slam {
+    0%   { opacity: 0; transform: translateY(-220px) scale(2.8) rotate(-4deg); }
+    50%  { opacity: 1; transform: translateY(0) scale(1.22) rotate(-14deg); }
+    66%  { transform: translateY(0) scale(.92) rotate(-14deg); }
+    82%  { transform: translateY(0) scale(1.04) rotate(-14deg); }
+    100% { opacity: .9; transform: translateY(0) scale(1) rotate(-14deg); }
+  }
+  .ink-burst {
+    position: absolute; right: calc(6% + 66px); bottom: 140px; width: 0; height: 0; z-index: 4; pointer-events: none;
+  }
+  .ink-burst i {
+    position: absolute; width: 8px; height: 8px; border-radius: 50%; background: #d6281f; opacity: 0;
+  }
+  .ink-burst.go i { animation: splat .5s ease-out forwards; }
+  @keyframes splat {
+    0% { opacity: .8; transform: translate(0,0) scale(1); }
+    100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(.3); }
+  }
+  .approved-msg { text-align: center; font-size: 22px; margin: 22px 0 0; visibility: hidden; }
+  .approved-msg.show { visibility: visible; animation: popIn .4s cubic-bezier(.2,1.4,.4,1); }
+  .after-submit { display: none; }
+  .after-submit.show { display: flex; animation: popIn .4s cubic-bezier(.2,1.4,.4,1); }
+
+  @media (max-width: 480px) {
+    .btn { font-size: 20px; padding: 12px 28px 10px; }
+    .paper { padding: 24px 14px 28px; }
+    .form { font-size: 13px; }
+    .form th, .form td { padding: 7px 6px; }
+    .stamp { width: 104px; height: 104px; bottom: 70px; right: 4%; }
+    .stamp .big { font-size: 36px; }
+    .stamp .small { font-size: 9px; }
+    .ink-burst { right: calc(4% + 52px); bottom: 122px; }
+    .meter .side { width: 5.8em; font-size: 14px; }
+    .timeline li { font-size: 16px; }
+    .timeline .when { min-width: 70px; font-size: 13px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+  }
+</style>
+</head>
+<body>
+<div class="confetti" aria-hidden="true">
+  <span style="left:6%;top:12%;background:var(--mustard)"></span>
+  <span style="left:88%;top:8%;background:var(--mint);animation-delay:-2s"></span>
+  <span style="left:92%;top:56%;background:var(--tomato);animation-delay:-1s;width:16px;height:16px"></span>
+  <span style="left:3%;top:68%;background:var(--sky);animation-delay:-3s"></span>
+  <span style="left:48%;top:93%;background:var(--mustard);animation-delay:-4s;width:14px;height:14px"></span>
+</div>
+
+<main id="app">
+  <!-- 1. 시작 -->
+  <section class="screen active" id="start">
+    <h1 class="title" id="startTitle"></h1>
+    <p class="subtitle" id="startSubtitle"></p>
+    <div class="hero"><div class="ant-slot"></div></div>
+    <div class="nametag" id="startName"></div>
+    <div class="btn-row"><button class="btn" id="startBtn"></button></div>
+  </section>
+
+  <!-- 2. 선택 x5 -->
+  <section class="screen" id="question">
+    <div class="progress">
+      <div class="segs" id="progressSegs"></div>
+      <div class="count" id="progressCount"></div>
+    </div>
+    <div class="scene">
+      <div class="ant-wrap"><div class="ant-slot"></div></div>
+      <div class="bubble">
+        <span class="chip" id="qPeriod"></span>
+        <p id="qText"></p>
+      </div>
+    </div>
+    <div class="choices" id="choices"></div>
+  </section>
+
+  <!-- 3. 결과 -->
+  <section class="screen" id="result">
+    <div class="result-head">
+      <div class="ant-wrap"><div class="ant-slot cheer"></div></div>
+    </div>
+    <div class="panel type-card" id="typeCard">
+      <div class="type-code" id="typeCode"></div>
+      <div class="type-name" id="typeName"></div>
+      <p class="type-desc" id="typeDesc"></p>
+    </div>
+
+    <div class="section-title">Ant의 1년</div>
+    <div class="panel"><ul class="timeline" id="timeline"></ul></div>
+
+    <div class="section-title">창조자 성향</div>
+    <div class="panel"><div class="meters" id="meters"></div></div>
+
+    <div class="section-title" id="visionTitle"></div>
+    <div class="panel vision">
+      <p class="quote" id="visionText"></p>
+      <p class="summary" id="summary"></p>
+      <div class="comp-row" id="compRow"></div>
+      <p class="fit" id="fit"></p>
+    </div>
+
+    <div class="btn-row"><button class="btn" id="toAppBtn"></button></div>
+  </section>
+
+  <!-- 4~5. 신청서 -->
+  <section class="screen" id="application">
+    <p class="lead">📝 신청서를 확인하고 제출해 보세요!</p>
+    <div class="paper-wrap">
+      <div class="paper" id="paper">
+        <div class="doc-top"><span id="docNo"></span><span id="docOrgTop"></span></div>
+        <h2 id="docTitle"></h2>
+        <p class="org" id="docOrg"></p>
+        <table class="form">
+          <tbody id="formBody"></tbody>
+        </table>
+        <p class="pledge" id="pledge"></p>
+        <p class="date" id="docDate"></p>
+        <div class="sign" id="sign"></div>
+        <p class="recipient" id="recipient"></p>
+        <div class="ink-burst" id="inkBurst"></div>
+        <div class="stamp" id="stamp"><div><span class="big" id="stampBig"></span><span class="small" id="stampSmall"></span></div></div>
+      </div>
+    </div>
+    <p class="approved-msg" id="approvedMsg"></p>
+    <div class="btn-row" id="submitRow"><button class="btn" id="submitBtn"></button></div>
+    <div class="btn-row after-submit" id="afterRow">
+      <button class="btn mint" id="saveBtn"></button>
+      <button class="btn yellow" id="restartBtn"></button>
+    </div>
+  </section>
+</main>
+
+<script>
+(function () {
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const state = { step: 0, picks: [], busy: false };
+
+  /* ---------- Ant SVG (오리지널 캐릭터) ---------- */
+  const INK = "#2a1a12", BODY = "#d9542f", BODY2 = "#c4432a";
+  function antSVG(cls = "") {
+    return `
+<svg class="ant ${cls}" viewBox="0 0 200 230" aria-label="Ant 캐릭터" role="img">
+ <g class="bob">
+  <g stroke="${INK}" stroke-width="6" stroke-linecap="round" fill="none">
+    <path d="M80 152 Q56 162 50 184"/><path d="M120 152 Q144 162 150 184"/>
+    <path d="M84 196 Q68 208 64 224"/><path d="M116 196 Q132 208 136 224"/>
+  </g>
+  <ellipse cx="100" cy="186" rx="42" ry="32" fill="${BODY2}" stroke="${INK}" stroke-width="6"/>
+  <path d="M68 180 Q100 194 132 180" stroke="${INK}" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <ellipse cx="86" cy="174" rx="10" ry="5" fill="#fff" opacity=".3"/>
+  <ellipse cx="100" cy="143" rx="24" ry="18" fill="${BODY2}" stroke="${INK}" stroke-width="6"/>
+  <g class="arm-l"><path d="M80 140 Q60 134 50 116" stroke="${INK}" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <circle cx="49" cy="112" r="8" fill="${BODY}" stroke="${INK}" stroke-width="5"/></g>
+  <g class="arm-r"><path d="M120 140 Q140 134 150 116" stroke="${INK}" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <circle cx="151" cy="112" r="8" fill="${BODY}" stroke="${INK}" stroke-width="5"/></g>
+  <g class="antenna-l"><path d="M84 48 Q72 20 52 14" stroke="${INK}" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <circle cx="49" cy="13" r="10" fill="#ffc531" stroke="${INK}" stroke-width="5"/></g>
+  <g class="antenna-r"><path d="M116 48 Q128 20 148 14" stroke="${INK}" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <circle cx="151" cy="13" r="10" fill="#ffc531" stroke="${INK}" stroke-width="5"/></g>
+  <circle cx="100" cy="90" r="50" fill="${BODY}" stroke="${INK}" stroke-width="6"/>
+  <ellipse cx="76" cy="70" rx="12" ry="7" fill="#fff" opacity=".35" transform="rotate(-30 76 70)"/>
+  <path d="M56 62 Q64 30 104 30 Q146 32 146 60 Q118 50 56 62Z" fill="#4fd1b0" stroke="${INK}" stroke-width="6" stroke-linejoin="round"/>
+  <circle cx="108" cy="28" r="6" fill="#4fd1b0" stroke="${INK}" stroke-width="5"/>
+  <g class="eyes">
+    <ellipse cx="82" cy="92" rx="8" ry="11" fill="${INK}"/><circle cx="85" cy="87" r="3.2" fill="#fff"/>
+    <ellipse cx="118" cy="92" rx="8" ry="11" fill="${INK}"/><circle cx="121" cy="87" r="3.2" fill="#fff"/>
+  </g>
+  <ellipse cx="67" cy="108" rx="9" ry="5" fill="#ff9aa2" opacity=".9"/>
+  <ellipse cx="133" cy="108" rx="9" ry="5" fill="#ff9aa2" opacity=".9"/>
+  <path d="M90 108 Q100 122 110 108 Z" fill="#7a1f14" stroke="${INK}" stroke-width="4.5" stroke-linejoin="round"/>
+ </g>
+</svg>`;
+  }
+  document.querySelectorAll(".ant-slot").forEach(el => { el.innerHTML = antSVG(el.classList.contains("cheer") ? "cheer" : ""); });
+
+  /* ---------- 조사 자동 처리 ---------- */
+  const JOSA = { "을/를": ["을", "를"], "이/가": ["이", "가"], "은/는": ["은", "는"], "와/과": ["과", "와"], "과/와": ["과", "와"], "으로/로": ["으로", "로"] };
+  function applyJosa(text) {
+    return text.replace(/([\s\S])\((을\/를|이\/가|은\/는|와\/과|과\/와|으로\/로)\)/g, (m, ch, key) => {
+      const code = ch.charCodeAt(0);
+      let jong = 0;
+      if (code >= 0xac00 && code <= 0xd7a3) jong = (code - 0xac00) % 28;
+      const [withB, noB] = JOSA[key];
+      if (key === "으로/로") return ch + (jong === 0 || jong === 8 ? noB : withB);
+      return ch + (jong ? withB : noB);
+    });
+  }
+
+  /* ---------- 시작 화면 ---------- */
+  const t = GAME.title;
+  $("#startTitle").innerHTML = t.includes("아텍") ? esc(t).replace("아텍", '<span class="accent">아텍</span>') : esc(t);
+  $("#startSubtitle").textContent = GAME.subtitle;
+  $("#startName").textContent = GAME.player.name;
+  $("#startBtn").textContent = GAME.startButton;
+  $("#toAppBtn").textContent = GAME.buttons.toApplication;
+  $("#submitBtn").textContent = GAME.application.submitButton;
+  $("#saveBtn").textContent = GAME.buttons.save;
+  $("#restartBtn").textContent = GAME.buttons.restart;
+
+  function show(id) {
+    document.querySelectorAll(".screen").forEach(s => s.classList.toggle("active", s.id === id));
+    window.scrollTo({ top: 0 });
+  }
+
+  $("#startBtn").onclick = () => { state.step = 0; state.picks = []; renderQuestion(); show("question"); };
+
+  /* ---------- 선택 화면 ---------- */
+  function renderQuestion() {
+    const total = GAME.questions.length;
+    const q = GAME.questions[state.step];
+    $("#progressSegs").style.gridTemplateColumns = `repeat(${total}, 1fr)`;
+    $("#progressSegs").innerHTML = GAME.questions.map((_, i) =>
+      `<div class="seg ${i < state.step ? "done" : i === state.step ? "now" : ""}"></div>`).join("");
+    $("#progressCount").textContent = `${state.step + 1} / ${total}`;
+    $("#qPeriod").textContent = q.period;
+    $("#qText").textContent = q.question;
+    const box = $("#choices");
+    box.classList.remove("locked");
+    box.innerHTML = q.choices.map((c, i) =>
+      `<button class="card" data-i="${i}"><span class="icon">${esc(c.icon || "")}</span><span>${esc(c.label)}</span></button>`).join("");
+    box.querySelectorAll(".card").forEach(btn => btn.onclick = () => pick(+btn.dataset.i, btn));
+    const sc = document.querySelector("#question .scene");
+    sc.style.animation = "none"; sc.offsetHeight; sc.style.animation = "popIn .4s cubic-bezier(.2,1.4,.4,1)";
+  }
+
+  function pick(i, btn) {
+    if (state.busy) return;
+    state.busy = true;
+    const box = $("#choices");
+    box.classList.add("locked");
+    box.querySelectorAll(".card").forEach(c => c.classList.add(c === btn ? "picked" : "dim"));
+    state.picks[state.step] = GAME.questions[state.step].choices[i];
+    setTimeout(() => {
+      state.busy = false;
+      state.step++;
+      if (state.step < GAME.questions.length) { renderQuestion(); window.scrollTo({ top: 0 }); }
+      else { renderResult(); renderApplication(); show("result"); }
+    }, 620);
+  }
+
+  /* ---------- 결과 화면 ---------- */
+  let result = null;
+
+  function renderResult() {
+    result = computeType(state.picks);
+    const type = GAME.types[result.code];
+    const card = $("#typeCard");
+    card.style.setProperty("--type-color", type.color);
+    $("#typeCode").innerHTML = result.code.split("").map(c => `<b>${c}</b>`).join("");
+    $("#typeCode").style.setProperty("--type-color", type.color);
+    $("#typeName").textContent = type.name;
+    $("#typeDesc").textContent = type.desc;
+
+    $("#timeline").innerHTML = state.picks.map((c, i) =>
+      `<li><span class="when">${esc(GAME.questions[i].period)}</span><span class="what">${esc(c.icon || "")} ${esc(c.label)}</span></li>`).join("");
+
+    $("#meters").innerHTML = GAME.axes.map(ax => {
+      const l = result.scores[ax.left], r = result.scores[ax.right];
+      const pct = l + r === 0 ? 50 : Math.round(l / (l + r) * 100);
+      const win = result.code.includes(ax.left) ? "l" : "r";
+      return `<div>
+        <div class="meter-title">${esc(ax.title)}</div>
+        <div class="meter">
+          <span class="side ${win === "l" ? "win" : ""}">${ax.left} ${esc(ax.labels[ax.left])} ${l}</span>
+          <span class="bar"><i class="l" style="width:${pct}%;${pct === 0 ? "border:0" : ""}"></i><i class="r"></i></span>
+          <span class="side r ${win === "r" ? "win" : ""}">${r} ${esc(ax.labels[ax.right])} ${ax.right}</span>
+        </div></div>`;
+    }).join("");
+
+    $("#visionTitle").textContent = GAME.vision.title;
+    $("#visionText").textContent = "“" + GAME.vision.text + "”";
+    $("#summary").innerHTML = buildSummaryHTML(result.code);
+    $("#compRow").innerHTML = GAME.vision.competencies.map(c => `<span>${esc(c)}</span>`).join("");
+    $("#fit").textContent = `${GAME.player.name}는 ‘${type.name}’. ${type.fit}`;
+  }
+
+  function buildSummaryHTML(code) {
+    const vals = { competency: GAME.competencyByWeapon[code[0]], impact: GAME.impactByDirection[code[2]] };
+    const byRole = {};
+    GAME.questions.forEach((q, i) => (byRole[q.role] = byRole[q.role] || []).push(state.picks[i].phrase));
+    Object.entries(byRole).forEach(([role, list]) => {
+      list.forEach((p, i) => vals[role + (i + 1)] = p);
+      vals[role] = list[0];
+    });
+    // 1) 값 채우고 조사 처리 (평문) 2) 값 부분만 <mark>
+    const parts = [];
+    let plain = GAME.summaryTemplate.replace(/\{(\w+)\}/g, (m, k) => {
+      if (vals[k] == null) return m;
+      parts.push(vals[k]);
+      return vals[k];
+    });
+    plain = applyJosa(plain);
+    let html = esc(plain);
+    [...new Set(parts)].sort((a, b) => b.length - a.length).forEach(p => {
+      html = html.split(esc(p)).join(`\u0001${esc(p)}\u0002`);
+    });
+    return html.replace(/\u0001/g, "<mark>").replace(/\u0002/g, "</mark>");
+  }
+
+  /* ---------- 신청서 ---------- */
+  function renderApplication() {
+    const A = GAME.application, L = A.labels, type = GAME.types[result.code];
+    $("#docNo").textContent = A.docNo;
+    $("#docOrgTop").textContent = A.org;
+    $("#docTitle").textContent = A.title;
+    $("#docOrg").textContent = A.org;
+    const rows = state.picks.map((c, i) =>
+      `<tr><td class="period">${esc(GAME.questions[i].period)}</td><td colspan="3">${esc(c.log)}</td></tr>`).join("");
+    $("#formBody").innerHTML = `
+      <tr><th>${esc(L.name)}</th><td class="name">${esc(GAME.player.name)}</td><th>${esc(L.major)}</th><td>${esc(GAME.player.major)}</td></tr>
+      <tr><th>${esc(L.type)}</th><td colspan="3" class="type-cell">${result.code.split("").join("·")} ${esc(type.name)}
+        <small>${GAME.axes.map(ax => esc(ax.title) + ": " + esc(ax.labels[result.code[GAME.axes.indexOf(ax)]])).join(" / ")}</small></td></tr>
+      <tr><th colspan="4">${esc(L.log)}</th></tr>
+      <tr class="sub"><th>${esc(L.period)}</th><th colspan="3">${esc(L.content)}</th></tr>
+      ${rows}
+      <tr><th>${esc(L.reason)}</th><td colspan="3">${esc(type.fit)}</td></tr>`;
+    $("#pledge").textContent = A.pledge;
+    $("#docDate").textContent = A.date;
+    $("#sign").innerHTML = `${esc(A.signLabel)} <span class="sig">${esc(GAME.player.name)}</span> (서명)`;
+    $("#recipient").textContent = A.recipient;
+    $("#stampBig").textContent = A.stampText;
+    $("#stampSmall").textContent = A.stampSub;
+    $("#approvedMsg").textContent = A.approvedMessage;
+    resetStamp();
+  }
+
+  function resetStamp() {
+    const st = $("#stamp");
+    st.className = "stamp";
+    $("#inkBurst").className = "ink-burst";
+    $("#approvedMsg").classList.remove("show");
+    $("#submitRow").style.display = "";
+    $("#afterRow").classList.remove("show");
+  }
+
+  $("#toAppBtn").onclick = () => show("application");
+
+  $("#submitBtn").onclick = () => {
+    $("#submitRow").style.display = "none";
+    const paper = $("#paper");
+    paper.scrollIntoView({ behavior: "smooth", block: "end" });
+    setTimeout(() => {
+      const st = $("#stamp");
+      st.className = "stamp slam";
+      setTimeout(() => {
+        const app = $("#app");
+        app.classList.remove("shake"); app.offsetWidth; app.classList.add("shake");
+        const burst = $("#inkBurst");
+        burst.innerHTML = Array.from({ length: 10 }, (_, i) => {
+          const a = i / 10 * Math.PI * 2, d = 80 + Math.random() * 30;
+          return `<i style="--dx:${Math.cos(a) * d}px;--dy:${Math.sin(a) * d}px"></i>`;
+        }).join("");
+        burst.className = "ink-burst go";
+        if (navigator.vibrate) navigator.vibrate(60);
+      }, 275);
+      st.addEventListener("animationend", () => {
+        st.className = "stamp done";   // 이미지 저장 시 애니메이션 없이 최종 상태로 캡처되도록
+        $("#approvedMsg").classList.add("show");
+        setTimeout(() => $("#afterRow").classList.add("show"), 350);
+      }, { once: true });
+    }, 350);
+  };
+
+  $("#saveBtn").onclick = async () => {
+    if (typeof html2canvas !== "function") { alert("이미지 저장 라이브러리를 불러오지 못했어요. 인터넷 연결을 확인해 주세요."); return; }
+    const btn = $("#saveBtn"), label = btn.textContent;
+    btn.textContent = "저장 중…"; btn.disabled = true;
+    try {
+      if (document.fonts && document.fonts.ready) await document.fonts.ready;
+      const canvas = await html2canvas($("#paper"), { scale: 2, backgroundColor: "#f7f1e1", useCORS: true });
+      const a = document.createElement("a");
+      a.download = `${GAME.player.name}_아텍_신청서.png`;
+      a.href = canvas.toDataURL("image/png");
+      document.body.appendChild(a); a.click(); a.remove();
+    } catch (e) {
+      console.error(e); alert("이미지 저장 중 문제가 생겼어요.");
+    } finally {
+      btn.textContent = label; btn.disabled = false;
+    }
+  };
+
+  $("#restartBtn").onclick = () => { resetStamp(); state.step = 0; state.picks = []; show("start"); };
+})();
+</script>
+</body>
+</html>
